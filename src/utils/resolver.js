@@ -34,7 +34,7 @@ export const prepareRequest = (request, activeEnv) => {
     try {
       body = resolveVariables(body, variables);
       body = JSON.parse(body);
-    } catch (e) {
+    } catch {
       // If JSON parse fails, send as is or handle error elsewhere
     }
   }

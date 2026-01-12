@@ -7,6 +7,7 @@ import { Button } from "./ui/Button";
 export const Sidebar = ({ searchTerm = "" }) => {
   const { collections, currentRequest, setCurrentRequest, deleteRequest } =
     useRequestStore();
+  // eslint-disable-next-line no-unused-vars
   const { environments, activeEnvId, setActiveEnv } = useEnvStore();
 
   const filteredCollections = collections.filter(

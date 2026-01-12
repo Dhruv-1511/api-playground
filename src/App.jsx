@@ -1,14 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { RequestPanel } from "./components/RequestPanel";
 import { ResponsePanel } from "./components/ResponsePanel";
 import { Github, Sun, Moon, ChevronDown, Search, Server } from "lucide-react";
 import { Button } from "./components/ui/Button";
+import { useThemeStore } from "./store/useThemeStore";
+import { useRequestStore } from "./store/useRequestStore";
 
 function App() {
-  const [response, setResponse] = useState(null);
-  const [isDark, setIsDark] = useState(true);
+  const { isDark, toggleTheme } = useThemeStore();
+  const { currentResponse, setCurrentResponse } = useRequestStore();
   const [searchTerm, setSearchTerm] = useState("");
+  const [requestPanelHeight, setRequestPanelHeight] = useState(50); // percentage
+  const containerRef = useRef(null);
+  const isResizingRef = useRef(false);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -33,8 +38,30 @@ function App() {
     }
   }, [isDark]);
 
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizingRef.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const newHeight = ((e.clientY - rect.top) / rect.height) * 100;
+      setRequestPanelHeight(Math.max(20, Math.min(80, newHeight)));
+    };
+
+    const handleMouseUp = () => {
+      isResizingRef.current = false;
+      document.body.style.cursor = "";
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background text-foreground font-sans selection:bg-primary/30">
+    <div ref={containerRef} className="flex h-screen w-full overflow-hidden bg-background text-foreground font-sans selection:bg-primary/30">
       <Sidebar searchTerm={searchTerm} />
 
       <main className="flex-1 flex flex-col min-w-0 bg-background/50">
@@ -93,12 +120,12 @@ function App() {
             </div>
 
             <div className="flex items-center gap-2 border-l pl-4 border-border/50">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-9 h-9 p-0 rounded-xl hover:bg-yellow-400/10"
-                onClick={() => setIsDark(!isDark)}
-              >
+               <Button
+                 variant="ghost"
+                 size="sm"
+                 className="w-9 h-9 p-0 rounded-xl hover:bg-yellow-400/10"
+                 onClick={toggleTheme}
+               >
                 {isDark ? (
                   <Sun size={18} className="text-yellow-400" />
                 ) : (
@@ -133,15 +160,21 @@ function App() {
         </header>
 
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-background/50">
-          <div className="flex-1 min-h-[40%] transition-all duration-300 ease-in-out">
-            <RequestPanel onResponse={setResponse} />
+          <div style={{ height: `${requestPanelHeight}%` }} className="transition-all duration-300 ease-in-out">
+            <RequestPanel onResponse={setCurrentResponse} />
           </div>
-          <div className="h-px bg-border hover:bg-primary/50 transition-colors cursor-row-resize relative group">
+          <div
+            className="h-px bg-border hover:bg-primary/50 transition-colors cursor-row-resize relative group"
+            onMouseDown={() => {
+              isResizingRef.current = true;
+              document.body.style.cursor = "row-resize";
+            }}
+          >
             <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
-          <div className="flex-1 min-h-[30%] transition-all duration-300 ease-in-out">
-            <ResponsePanel response={response} />
-          </div>
+           <div style={{ height: `${100 - requestPanelHeight}%`, minHeight: '200px' }} className="transition-all duration-300 ease-in-out">
+             <ResponsePanel response={currentResponse} />
+           </div>
         </div>
       </main>
     </div>

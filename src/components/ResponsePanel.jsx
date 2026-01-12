@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import Editor from "@monaco-editor/react";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, TreePine, GitCompare } from "lucide-react";
 import { Button } from "./ui/Button";
+import JsonViewer from "./JsonViewer";
+import ResponseComparison from "./ResponseComparison";
 
 export const ResponsePanel = ({ response }) => {
-  const [activeTab, setActiveTab] = useState("pretty");
+  const [activeTab, setActiveTab] = useState("tree");
   const [copied, setCopied] = useState(false);
+  const [jsonSearchTerm, setJsonSearchTerm] = useState('');
+  const [showComparison, setShowComparison] = useState(false);
 
   if (!response) {
     return (
@@ -44,14 +48,14 @@ export const ResponsePanel = ({ response }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background/40">
+    <div className="flex flex-col h-full min-h-[200px] bg-background/40">
       {/* STATUS BAR */}
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-card/20 backdrop-blur-md text-[10px] font-bold tracking-wider uppercase">
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-card/20 backdrop-blur-md text-sm font-medium">
         <div className="flex gap-6">
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground/60">Status:</span>
+            <span className="text-muted-foreground">Status:</span>
             <span
-              className={`px-2 py-0.5 rounded-md border ${getStatusColor(
+              className={`px-2 py-1 rounded-md border font-semibold ${getStatusColor(
                 response.status
               )}`}
             >
@@ -59,89 +63,120 @@ export const ResponsePanel = ({ response }) => {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground/60">Time:</span>
-            <span className="text-primary">{response.time} ms</span>
+            <span className="text-muted-foreground">Time:</span>
+            <span className="text-primary font-semibold">{response.time} ms</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground/60">Size:</span>
-            <span className="text-secondary">
+            <span className="text-muted-foreground">Size:</span>
+            <span className="text-secondary font-semibold">
               {(response.size / 1024).toFixed(2)} KB
             </span>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleCopy}
-          className="h-7 gap-2 text-[9px] hover:bg-primary/10 transition-colors"
-        >
-          {copied ? (
-            <Check size={14} className="text-emerald-500" />
-          ) : (
-            <Copy size={14} />
-          )}
-          {copied ? "Copied!" : "Copy Raw"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowComparison(true)}
+            className="h-8 gap-2 text-sm hover:bg-primary/10 transition-colors"
+          >
+            <GitCompare size={14} />
+            Compare
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCopy}
+            className="h-8 gap-2 text-sm hover:bg-primary/10 transition-colors"
+          >
+            {copied ? (
+              <Check size={14} className="text-emerald-500" />
+            ) : (
+              <Copy size={14} />
+            )}
+            {copied ? "Copied!" : "Copy Raw"}
+          </Button>
+        </div>
       </div>
 
       {/* TABS */}
-      <div className="flex px-4 border-b bg-background/10 text-[10px] font-bold tracking-[0.1em] uppercase">
-        {["pretty", "raw", "headers", "timing"].map((tab) => (
+      <div className="flex px-4 border-b bg-background/10 text-sm font-medium">
+        {[
+          { key: "tree", label: "Tree", icon: TreePine },
+          { key: "pretty", label: "Pretty" },
+          { key: "raw", label: "Raw" },
+          { key: "headers", label: "Headers" },
+          { key: "timing", label: "Timing" }
+        ].map(({ key, label, icon: Icon }) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-6 py-3 transition-all relative group ${
-              activeTab === tab
+            key={key}
+            onClick={() => setActiveTab(key)}
+            className={`px-6 py-3 transition-all relative group flex items-center gap-2 hover:bg-muted/20 ${
+              activeTab === key
                 ? "text-primary border-b-2 border-primary"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {tab}
+            {Icon && <Icon size={14} />}
+            {label}
           </button>
         ))}
       </div>
 
       {/* CONTENT */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden bg-background min-h-[200px]">
+        {activeTab === "tree" && (
+          <div className="h-full min-h-[300px]">
+            <JsonViewer
+              data={response.data}
+              searchTerm={jsonSearchTerm}
+              onSearchChange={setJsonSearchTerm}
+            />
+          </div>
+        )}
         {activeTab === "pretty" && (
-          <Editor
-            height="100%"
-            defaultLanguage="json"
-            theme="vs-dark"
-            value={
-              typeof response.data === "string"
-                ? response.data
-                : JSON.stringify(response.data, null, 2)
-            }
-            options={{
-              readOnly: true,
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              fontSize: 13,
-              wordWrap: "on",
-              padding: { top: 16 },
-              backgroundColor: "transparent",
-            }}
-          />
+          <div className="h-full min-h-[300px]">
+            <Editor
+              height="100%"
+              defaultLanguage="json"
+              theme="vs-dark"
+              value={
+                typeof response.data === "string"
+                  ? response.data
+                  : JSON.stringify(response.data, null, 2)
+              }
+              options={{
+                readOnly: true,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 14,
+                wordWrap: "on",
+                padding: { top: 20, bottom: 20, left: 20, right: 20 },
+                backgroundColor: "transparent",
+              }}
+            />
+          </div>
         )}
         {activeTab === "raw" && (
-          <pre className="p-6 text-xs font-mono whitespace-pre-wrap h-full overflow-auto bg-card/10 selection:bg-primary/30">
-            {typeof response.data === "string"
-              ? response.data
-              : JSON.stringify(response.data)}
-          </pre>
+          <div className="h-full min-h-[300px] overflow-auto">
+            <pre className="p-8 text-sm font-mono whitespace-pre-wrap min-h-full bg-card/5 selection:bg-primary/30 leading-relaxed">
+              {typeof response.data === "string"
+                ? response.data
+                : JSON.stringify(response.data, null, 2)}
+            </pre>
+          </div>
         )}
         {activeTab === "headers" && (
-          <div className="p-6 space-y-3 overflow-auto h-full bg-card/10 text-sans">
+          <div className="p-8 space-y-4 overflow-auto h-full min-h-[300px] bg-card/5">
             {Object.entries(response.headers).map(([key, value]) => (
               <div
                 key={key}
-                className="flex gap-4 border-b border-primary/5 pb-2 text-sm group"
+                className="flex gap-6 border-b border-border/30 pb-3 group hover:bg-muted/20 rounded-lg p-3 transition-colors"
               >
-                <span className="font-bold w-1/3 truncate text-muted-foreground/70 group-hover:text-primary transition-colors">
+                <span className="font-semibold w-1/3 truncate text-foreground group-hover:text-primary transition-colors">
                   {key}
                 </span>
-                <span className="flex-1 break-all font-mono text-xs opacity-80">
+                <span className="flex-1 break-all font-mono text-sm text-muted-foreground">
                   {value}
                 </span>
               </div>
@@ -149,82 +184,100 @@ export const ResponsePanel = ({ response }) => {
           </div>
         )}
         {activeTab === "timing" && (
-          <div className="p-8 space-y-8 h-full overflow-auto bg-card/5">
-            <div className="flex flex-col gap-6 max-w-2xl">
-              <h4 className="text-sm font-bold text-foreground/80 flex items-center gap-2">
-                <div className="w-1 h-4 bg-primary rounded-full" />
-                Precision Network Timing
-              </h4>
-              <div className="space-y-4">
+          <div className="p-8 space-y-8 h-full min-h-[300px] overflow-auto bg-card/5">
+            <div className="flex flex-col gap-8 max-w-4xl">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-8 bg-primary rounded-full" />
+                <h3 className="text-xl font-bold text-foreground">Network Timing Analysis</h3>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2">
                 {[
-                  { label: "DNS Lookup", value: "12", color: "bg-blue-400" },
+                  { label: "DNS Lookup", value: "12", color: "bg-blue-500", desc: "Domain name resolution" },
                   {
                     label: "TCP Handshake",
                     value: "24",
-                    color: "bg-purple-400",
+                    color: "bg-purple-500",
+                    desc: "Connection establishment"
                   },
                   {
-                    label: "SSL/TLS Secure Connect",
+                    label: "SSL/TLS Handshake",
                     value: "28",
-                    color: "bg-emerald-400",
+                    color: "bg-emerald-500",
+                    desc: "Secure connection setup"
                   },
                   {
                     label: "Request Dispatch",
                     value: "1",
-                    color: "bg-amber-400",
+                    color: "bg-amber-500",
+                    desc: "Sending request headers"
                   },
                   {
-                    label: "Wait Time (TTFB)",
+                    label: "Time to First Byte (TTFB)",
                     value: Math.max(1, Math.round(response.time * 0.75)),
-                    color: "bg-rose-400",
+                    color: "bg-rose-500",
+                    desc: "Server response time"
                   },
                   {
-                    label: "Payload Transfer",
+                    label: "Content Download",
                     value: Math.max(1, Math.round(response.time * 0.15)),
-                    color: "bg-indigo-400",
+                    color: "bg-indigo-500",
+                    desc: "Payload transfer"
                   },
                 ].map((item) => (
-                  <div key={item.label} className="space-y-1.5">
-                    <div className="flex justify-between text-[11px] font-bold tracking-tight">
-                      <span className="text-muted-foreground/80 uppercase">
-                        {item.label}
-                      </span>
-                      <span className="text-foreground">{item.value} ms</span>
+                  <div key={item.label} className="bg-card/50 rounded-xl p-6 border border-border/30">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="font-semibold text-foreground mb-1">{item.label}</h4>
+                        <p className="text-sm text-muted-foreground">{item.desc}</p>
+                      </div>
+                      <span className="text-lg font-bold text-primary">{item.value} ms</span>
                     </div>
-                    <div className="h-2 w-full bg-muted/20 rounded-full overflow-hidden">
+                    <div className="h-3 w-full bg-muted/30 rounded-full overflow-hidden">
                       <div
-                        className={`h-full ${item.color} shadow-[0_0_10px_rgba(0,0,0,0.2)] transition-all duration-1000 ease-out animate-in slide-in-from-left`}
+                        className={`h-full ${item.color} transition-all duration-1000 ease-out rounded-full shadow-sm`}
                         style={{
-                          width: `${Math.min(
-                            100,
-                            (Number(item.value) / response.time) * 100
-                          )}%`,
+                          width: `${Math.min(100, (Number(item.value) / response.time) * 100)}%`,
                         }}
                       />
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="pt-8 border-t border-border/50 flex justify-between items-end">
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-50 tracking-widest">
-                    Aggregate Latency
-                  </span>
-                  <span className="text-4xl font-black text-primary tracking-tighter">
-                    {response.time} ms
-                  </span>
-                </div>
-                <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">
-                    Performance Peak
-                  </span>
+
+              <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-8 border border-primary/20">
+                <div className="flex justify-between items-end">
+                  <div className="space-y-2">
+                    <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                      Total Response Time
+                    </span>
+                    <div className="text-5xl font-black text-primary tracking-tighter">
+                      {response.time} ms
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      End-to-end request latency
+                    </p>
+                  </div>
+                  <div className="px-6 py-3 bg-emerald-500/15 border border-emerald-500/30 rounded-xl flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50" />
+                    <span className="text-sm font-bold text-emerald-600 uppercase tracking-wide">
+                      Performance Analyzed
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* Response Comparison Modal */}
+      {showComparison && (
+        <ResponseComparison
+          currentResponse={response}
+          onClose={() => setShowComparison(false)}
+        />
+      )}
     </div>
   );
 };

@@ -14,6 +14,7 @@ export const useRequestStore = create(
         body: "",
         bodyType: "json",
       },
+      currentResponse: null,
       collections: [
         {
           id: "sample-1",
@@ -34,6 +35,8 @@ export const useRequestStore = create(
         set((state) => ({
           currentRequest: { ...state.currentRequest, ...updates },
         })),
+
+      setCurrentResponse: (response) => set({ currentResponse: response }),
 
       saveRequest: () => {
         const { currentRequest, collections } = get();

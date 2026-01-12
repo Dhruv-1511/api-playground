@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Send, Loader2, Save, Trash2, Plus, Folder } from "lucide-react";
+import {
+  Send,
+  Loader2,
+  Save,
+  Trash2,
+  Plus,
+  Folder,
+  LayoutTemplate,
+} from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { useRequestStore } from "../store/useRequestStore";
 import { useEnvStore } from "../store/useEnvStore";
 import { prepareRequest } from "../utils/resolver";
+import { parseCurl } from "../utils/curlParser";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
+import RequestTemplates from "./RequestTemplates";
 
 const METHODS = [
   { value: "GET", label: "GET" },
@@ -24,6 +35,7 @@ export const RequestPanel = ({ onResponse }) => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("params");
   const [abortController, setAbortController] = useState(null);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const activeEnv = environments.find((e) => e.id === activeEnvId);
 
@@ -45,7 +57,7 @@ export const RequestPanel = ({ onResponse }) => {
         link.href = origin;
         document.head.appendChild(link);
       }
-    } catch (e) {
+    } catch {
       // Ignore invalid URLs while typing
     }
   }, [currentRequest.url]);
@@ -111,6 +123,57 @@ export const RequestPanel = ({ onResponse }) => {
     }
   };
 
+  const handleUrlChange = (e) => {
+    const value = e.target.value;
+
+    // Detect if user pasted a curl command
+    if (value.trim().startsWith("curl ")) {
+      try {
+        const parsed = parseCurl(value);
+        updateCurrentRequest({
+          method: parsed.method,
+          url: parsed.url,
+          headers:
+            parsed.headers.length > 0
+              ? parsed.headers
+              : [{ key: "", value: "", enabled: true }],
+          params:
+            parsed.params.length > 0
+              ? parsed.params
+              : [{ key: "", value: "", enabled: true }],
+          body: parsed.body,
+        });
+        // Clear the input since we parsed the curl
+        e.target.value = parsed.url;
+      } catch (error) {
+        console.error("Failed to parse curl command:", error.message);
+        // If parsing fails, just set the URL as normal
+        updateCurrentRequest({ url: value });
+      }
+    } else {
+      updateCurrentRequest({ url: value });
+    }
+  };
+
+  const applyTemplate = (template) => {
+    updateCurrentRequest({
+      method: template.method,
+      url: template.url,
+      headers: template.headers,
+      params: template.params,
+      body: template.body,
+    });
+  };
+
+  // Keyboard shortcuts (must be after all function definitions)
+  useKeyboardShortcuts([
+    { key: "Enter", ctrl: true, action: handleSend },
+    { key: "s", ctrl: true, action: saveRequest },
+    { key: "1", alt: true, action: () => setActiveTab("params") },
+    { key: "2", alt: true, action: () => setActiveTab("headers") },
+    { key: "3", alt: true, action: () => setActiveTab("body") },
+  ]);
+
   const updateList = (type, index, key, value) => {
     const list = [...currentRequest[type]];
     list[index] = { ...list[index], [key]: value };
@@ -132,32 +195,6 @@ export const RequestPanel = ({ onResponse }) => {
 
   return (
     <div className="flex flex-col h-full bg-background/30">
-      {/* HEADER / BREADCRUMBS */}
-      <div className="px-4 py-2 flex items-center justify-between border-b bg-muted/20">
-        <div className="flex items-center gap-2">
-          <Folder size={14} className="text-muted-foreground" />
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-            Collections
-          </span>
-          <span className="text-muted-foreground/30">/</span>
-          <input
-            className="bg-transparent border-none outline-none text-xs font-bold w-48 focus:bg-background/50 rounded px-1 transition-all"
-            value={currentRequest.name}
-            onChange={(e) => updateCurrentRequest({ name: e.target.value })}
-            placeholder="Untitled Request"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 text-[10px] gap-1 px-2 border border-border/50"
-          >
-            <Plus size={12} /> Import cURL
-          </Button>
-        </div>
-      </div>
-
       {/* URL BAR */}
       <div className="p-4 border-b bg-card/10 backdrop-blur-sm flex gap-3 items-center sticky top-0 z-10 transition-all">
         <div className="flex-none">
@@ -178,9 +215,9 @@ export const RequestPanel = ({ onResponse }) => {
         </div>
         <div className="flex-1 flex gap-2">
           <Input
-            placeholder="https://api.example.com/v1/resource..."
+            placeholder="https://api.example.com/v1/resource... or paste curl command"
             value={currentRequest.url}
-            onChange={(e) => updateCurrentRequest({ url: e.target.value })}
+            onChange={handleUrlChange}
             className="bg-background/40 border-primary/5 focus:border-primary/40 transition-all font-mono text-sm shadow-inner"
             onKeyDown={(e) => {
               if (e.ctrlKey && e.key === "Enter") handleSend();
@@ -304,6 +341,14 @@ export const RequestPanel = ({ onResponse }) => {
           </div>
         )}
       </div>
+
+      {/* Request Templates Modal */}
+      {showTemplates && (
+        <RequestTemplates
+          onClose={() => setShowTemplates(false)}
+          onSelectTemplate={applyTemplate}
+        />
+      )}
     </div>
   );
 };
