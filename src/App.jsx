@@ -6,6 +6,7 @@ import { Github, Sun, Moon, ChevronDown, Search, Server } from "lucide-react";
 import { Button } from "./components/ui/Button";
 import { useThemeStore } from "./store/useThemeStore";
 import { useRequestStore } from "./store/useRequestStore";
+import logo from './assets/logo.png';
 
 function App() {
   const { isDark, toggleTheme } = useThemeStore();
@@ -149,7 +150,7 @@ function App() {
               <div className="w-8 h-8 rounded-full border-2 border-primary/20 p-0.5 shadow-md hover:scale-105 transition-transform cursor-pointer">
                 <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center overflow-hidden">
                   <img
-                    src="/src/assets/logo.png"
+                    src={logo}
                     className="w-full h-full object-cover scale-150 grayscale opacity-80"
                     alt="Profile"
                   />

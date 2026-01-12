@@ -3,6 +3,7 @@ import { Plus, History, Folder, Trash2, Settings, Server } from "lucide-react";
 import { useRequestStore } from "../store/useRequestStore";
 import { useEnvStore } from "../store/useEnvStore";
 import { Button } from "./ui/Button";
+import logo from '../assets/logo.png';
 
 export const Sidebar = ({ searchTerm = "" }) => {
   const { collections, currentRequest, setCurrentRequest, deleteRequest } =
@@ -35,7 +36,7 @@ export const Sidebar = ({ searchTerm = "" }) => {
       <div className="p-6 border-b space-y-6">
         <div className="flex items-center gap-2 py-1">
           <img
-            src="/src/assets/logo.png"
+            src={logo}
             alt="RequestLab"
             className="size-12 object-contain"
           />

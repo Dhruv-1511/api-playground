@@ -4,6 +4,7 @@ import { Copy, Check, TreePine, GitCompare } from "lucide-react";
 import { Button } from "./ui/Button";
 import JsonViewer from "./JsonViewer";
 import ResponseComparison from "./ResponseComparison";
+import logo from '../assets/logo.png';
 
 export const ResponsePanel = ({ response }) => {
   const [activeTab, setActiveTab] = useState("tree");
@@ -16,7 +17,7 @@ export const ResponsePanel = ({ response }) => {
       <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-background/50 p-8 font-sans">
         <div className="w-20 h-20 mb-6 opacity-20 relative">
           <img
-            src="/src/assets/logo.png"
+            src={logo}
             alt=""
             className="w-full h-full object-contain grayscale"
           />
