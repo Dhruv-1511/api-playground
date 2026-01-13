@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from './ui/Button';
-import { LayoutTemplate, Plus, Star, Clock, Zap } from 'lucide-react';
+import { LayoutTemplate, X, Zap } from 'lucide-react';
 
 const REQUEST_TEMPLATES = [
   {
@@ -113,7 +113,6 @@ const RequestTemplates = ({ onClose, onSelectTemplate }) => {
   });
 
   const applyTemplate = (template) => {
-    // Replace template variables with sample values
     const processedTemplate = {
       ...template,
       url: template.url.replace(/\{([^}]+)\}/g, (match, varName) => {
@@ -166,40 +165,46 @@ const RequestTemplates = ({ onClose, onSelectTemplate }) => {
     onClose();
   };
 
+  const methodColors = {
+    GET: 'text-emerald-500 bg-emerald-500/10',
+    POST: 'text-blue-500 bg-blue-500/10',
+    PUT: 'text-amber-500 bg-amber-500/10',
+    PATCH: 'text-orange-500 bg-orange-500/10',
+    DELETE: 'text-red-500 bg-red-500/10',
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-background rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-background border border-border rounded-sm shadow-lg max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <div className="flex items-center gap-3">
-            <LayoutTemplate size={20} className="text-primary" />
-            <h2 className="text-xl font-bold">Request Templates</h2>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <div className="flex items-center gap-2">
+            <LayoutTemplate size={18} className="text-primary" />
+            <span className="font-medium">Request Templates</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            ✕
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onClose}>
+            <X size={16} />
           </Button>
         </div>
 
         {/* Search and Filter */}
-        <div className="p-6 border-b border-border bg-muted/20">
-          <div className="flex gap-4 mb-4">
-            <input
-              type="text"
-              placeholder="Search templates..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 px-4 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
+        <div className="p-4 border-b border-border">
+          <input
+            type="text"
+            placeholder="Search templates..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-3 py-1.5 bg-transparent border border-border rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-ring mb-3"
+          />
           <div className="flex gap-2 flex-wrap">
             {categories.map(category => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                className={`px-2.5 py-1 rounded-sm text-xs font-medium transition-colors ${
                   selectedCategory === category
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    : 'bg-muted text-muted-foreground hover:bg-accent'
                 }`}
               >
                 {category === 'all' ? 'All' : category.charAt(0).toUpperCase() + category.slice(1)}
@@ -209,30 +214,25 @@ const RequestTemplates = ({ onClose, onSelectTemplate }) => {
         </div>
 
         {/* Templates Grid */}
-        <div className="flex-1 overflow-auto p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex-1 overflow-auto p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredTemplates.map(template => (
               <div
                 key={template.id}
-                className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer group"
+                className="border border-border rounded-sm p-3 hover:bg-accent/50 transition-colors cursor-pointer"
                 onClick={() => applyTemplate(template)}
               >
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-sm mb-1">{template.name}</h3>
-                    <p className="text-xs text-muted-foreground mb-2">{template.description}</p>
+                    <h3 className="font-medium text-sm">{template.name}</h3>
+                    <p className="text-xs text-muted-foreground">{template.description}</p>
                   </div>
-                  <div className={`px-2 py-1 rounded text-xs font-medium ${
-                    template.method === 'GET' ? 'bg-blue-500/20 text-blue-400' :
-                    template.method === 'POST' ? 'bg-green-500/20 text-green-400' :
-                    template.method === 'PUT' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-red-500/20 text-red-400'
-                  }`}>
+                  <span className={`px-1.5 py-0.5 rounded-sm text-xs font-medium ${methodColors[template.method]}`}>
                     {template.method}
-                  </div>
+                  </span>
                 </div>
 
-                <div className="text-xs text-muted-foreground mb-3 font-mono truncate">
+                <div className="text-xs text-muted-foreground font-mono truncate mb-2">
                   {template.url}
                 </div>
 
@@ -241,28 +241,19 @@ const RequestTemplates = ({ onClose, onSelectTemplate }) => {
                     <Zap size={12} />
                     {template.category}
                   </span>
-                  <span className="text-primary group-hover:underline">
-                    Use Template →
-                  </span>
+                  <span className="text-primary">Use</span>
                 </div>
               </div>
             ))}
           </div>
 
           {filteredTemplates.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            <LayoutTemplate size={48} className="mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">No templates found</p>
-              <p className="text-sm mt-2">Try adjusting your search or filter criteria</p>
+            <div className="text-center py-8 text-muted-foreground">
+              <LayoutTemplate size={32} className="mx-auto mb-3 opacity-50" />
+              <p className="font-medium">No templates found</p>
+              <p className="text-sm mt-1">Try adjusting your search</p>
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-border bg-muted/20 text-center">
-          <p className="text-sm text-muted-foreground">
-            Templates include sample data with <code className="bg-muted px-1 rounded">{'{variable}'}</code> placeholders
-          </p>
         </div>
       </div>
     </div>

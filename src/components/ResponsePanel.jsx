@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import Editor from "@monaco-editor/react";
-import { Copy, Check, TreePine, GitCompare } from "lucide-react";
+import { Copy, Check, GitCompare } from "lucide-react";
 import { Button } from "./ui/Button";
 import JsonViewer from "./JsonViewer";
 import ResponseComparison from "./ResponseComparison";
-import logo from '../assets/logo.png';
 
 export const ResponsePanel = ({ response }) => {
   const [activeTab, setActiveTab] = useState("tree");
@@ -14,26 +13,10 @@ export const ResponsePanel = ({ response }) => {
 
   if (!response) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-gradient-to-br from-card/30 to-card/10 p-12 font-sans animate-fade-in-up">
-        <div className="w-32 h-32 mb-8 opacity-30 relative animate-float">
-          <img
-            src={logo}
-            alt=""
-            className="w-full h-full object-contain grayscale"
-          />
-          <div className="absolute inset-0 bg-primary/30 blur-3xl rounded-full animate-pulse-glow" />
-        </div>
-        <p className="text-3xl font-black tracking-widest text-foreground/50 uppercase mb-4">
-          Ready for Request
-        </p>
-        <p className="text-lg font-semibold tracking-wide mt-4 max-w-[300px] text-center opacity-70 leading-relaxed">
-          Configure your API request above and hit Send to see the magic happen.
-        </p>
-        <div className="mt-8 flex items-center gap-4 text-sm font-medium opacity-50">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-            <span>Waiting for request</span>
-          </div>
+      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8">
+        <div className="text-center">
+          <p className="text-lg font-medium mb-2">No Response</p>
+          <p className="text-sm">Send a request to see the response here</p>
         </div>
       </div>
     );
@@ -46,97 +29,70 @@ export const ResponsePanel = ({ response }) => {
   };
 
   const getStatusColor = (status) => {
-    if (status >= 200 && status < 300)
-      return "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
-    if (status >= 400) return "text-rose-400 bg-rose-500/10 border-rose-500/20";
-    if (status >= 300)
-      return "text-amber-400 bg-amber-500/10 border-amber-500/20";
-    return "text-muted-foreground bg-muted/10 border-muted/20";
+    if (status >= 200 && status < 300) return "text-emerald-500 bg-emerald-500/10";
+    if (status >= 400) return "text-red-500 bg-red-500/10";
+    if (status >= 300) return "text-amber-500 bg-amber-500/10";
+    return "text-muted-foreground bg-muted";
   };
 
   return (
-    <div className="flex flex-col h-full min-h-[240px] bg-card/30 animate-slide-in">
-      {/* STATUS BAR */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 bg-card/60 backdrop-blur-md text-sm font-medium shadow-sm">
-        <div className="flex gap-8">
-          <div className="flex items-center gap-3">
-            <span className="text-muted-foreground font-medium">Status:</span>
-            <span
-              className={`px-3 py-1.5 rounded-lg border font-bold text-sm shadow-sm ${getStatusColor(
-                response.status
-              )}`}
-            >
+    <div className="flex flex-col h-full bg-background">
+      {/* Status Bar */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border text-sm">
+        <div className="flex gap-6">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Status:</span>
+            <span className={`px-2 py-0.5 rounded-sm font-medium ${getStatusColor(response.status)}`}>
               {response.status} {response.statusText}
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-muted-foreground font-medium">Time:</span>
-            <span className="text-primary font-bold text-lg">{response.time} ms</span>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Time:</span>
+            <span className="font-medium">{response.time} ms</span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-muted-foreground font-medium">Size:</span>
-            <span className="text-secondary font-bold text-lg">
-              {(response.size / 1024).toFixed(2)} KB
-            </span>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Size:</span>
+            <span className="font-medium">{(response.size / 1024).toFixed(2)} KB</span>
           </div>
         </div>
-        <div className="flex gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowComparison(true)}
-            className="h-10 gap-3 text-sm hover:bg-primary/10 transition-all duration-200 hover:scale-105 px-4"
-          >
-            <GitCompare size={16} />
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setShowComparison(true)} className="gap-2">
+            <GitCompare size={14} />
             Compare
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCopy}
-            className="h-10 gap-3 text-sm hover:bg-primary/10 transition-all duration-200 hover:scale-105 px-4"
-          >
-            {copied ? (
-              <Check size={16} className="text-emerald-500" />
-            ) : (
-              <Copy size={16} />
-            )}
-            {copied ? "Copied!" : "Copy Raw"}
+          <Button variant="ghost" size="sm" onClick={handleCopy} className="gap-2">
+            {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+            {copied ? "Copied" : "Copy"}
           </Button>
         </div>
       </div>
 
-      {/* TABS */}
-      <div className="flex px-6 border-b border-border/30 bg-card/20 text-sm font-medium shadow-inner">
+      {/* Tabs */}
+      <div className="flex border-b border-border text-sm">
         {[
-          { key: "tree", label: "Tree", icon: TreePine },
+          { key: "tree", label: "Tree" },
           { key: "pretty", label: "Pretty" },
           { key: "raw", label: "Raw" },
           { key: "headers", label: "Headers" },
-          { key: "timing", label: "Timing" }
-        ].map(({ key, label, icon: Icon }) => (
+        ].map(({ key, label }) => (
           <button
             key={key}
             onClick={() => setActiveTab(key)}
-            className={`px-8 py-4 transition-all duration-300 relative group flex items-center gap-3 hover:bg-accent/30 rounded-t-lg ${
+            className={`px-4 py-2 transition-colors border-b-2 -mb-px ${
               activeTab === key
-                ? "text-primary font-bold bg-primary/5"
-                : "text-muted-foreground hover:text-foreground"
+                ? "text-primary border-primary"
+                : "text-muted-foreground border-transparent hover:text-foreground"
             }`}
           >
-            {Icon && <Icon size={16} />}
             {label}
-            {activeTab === key && (
-              <div className="absolute bottom-0 left-0 right-0 h-1 electric-gradient glow-primary rounded-t-sm" />
-            )}
           </button>
         ))}
       </div>
 
-      {/* CONTENT */}
-      <div className="flex-1 overflow-hidden bg-background min-h-[200px]">
+      {/* Content */}
+      <div className="flex-1 overflow-hidden">
         {activeTab === "tree" && (
-          <div className="h-full min-h-[300px]">
+          <div className="h-full">
             <JsonViewer
               data={response.data}
               searchTerm={jsonSearchTerm}
@@ -145,7 +101,7 @@ export const ResponsePanel = ({ response }) => {
           </div>
         )}
         {activeTab === "pretty" && (
-          <div className="h-full min-h-[300px]">
+          <div className="h-full">
             <Editor
               height="100%"
               defaultLanguage="json"
@@ -159,17 +115,16 @@ export const ResponsePanel = ({ response }) => {
                 readOnly: true,
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
-                fontSize: 14,
+                fontSize: 13,
                 wordWrap: "on",
-                padding: { top: 20, bottom: 20, left: 20, right: 20 },
-                backgroundColor: "transparent",
+                padding: { top: 12, bottom: 12 },
               }}
             />
           </div>
         )}
         {activeTab === "raw" && (
-          <div className="h-full min-h-[300px] overflow-auto">
-            <pre className="p-8 text-sm font-mono whitespace-pre-wrap min-h-full bg-card/5 selection:bg-primary/30 leading-relaxed">
+          <div className="h-full overflow-auto">
+            <pre className="p-4 text-sm font-mono whitespace-pre-wrap">
               {typeof response.data === "string"
                 ? response.data
                 : JSON.stringify(response.data, null, 2)}
@@ -177,111 +132,17 @@ export const ResponsePanel = ({ response }) => {
           </div>
         )}
         {activeTab === "headers" && (
-          <div className="p-8 space-y-4 overflow-auto h-full min-h-[300px] bg-card/5">
+          <div className="p-4 space-y-2 overflow-auto h-full">
             {Object.entries(response.headers).map(([key, value]) => (
-              <div
-                key={key}
-                className="flex gap-6 border-b border-border/30 pb-3 group hover:bg-muted/20 rounded-lg p-3 transition-colors"
-              >
-                <span className="font-semibold w-1/3 truncate text-foreground group-hover:text-primary transition-colors">
-                  {key}
-                </span>
-                <span className="flex-1 break-all font-mono text-sm text-muted-foreground">
-                  {value}
-                </span>
+              <div key={key} className="flex gap-4 py-2 border-b border-border text-sm">
+                <span className="font-medium w-1/3 truncate">{key}</span>
+                <span className="flex-1 text-muted-foreground font-mono break-all">{value}</span>
               </div>
             ))}
           </div>
         )}
-        {activeTab === "timing" && (
-          <div className="p-8 space-y-8 h-full min-h-[300px] overflow-auto bg-card/5">
-            <div className="flex flex-col gap-8 max-w-4xl">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-8 bg-primary rounded-full" />
-                <h3 className="text-xl font-bold text-foreground">Network Timing Analysis</h3>
-              </div>
-
-              <div className="grid gap-6 md:grid-cols-2">
-                {[
-                  { label: "DNS Lookup", value: "12", color: "bg-blue-500", desc: "Domain name resolution" },
-                  {
-                    label: "TCP Handshake",
-                    value: "24",
-                    color: "bg-purple-500",
-                    desc: "Connection establishment"
-                  },
-                  {
-                    label: "SSL/TLS Handshake",
-                    value: "28",
-                    color: "bg-emerald-500",
-                    desc: "Secure connection setup"
-                  },
-                  {
-                    label: "Request Dispatch",
-                    value: "1",
-                    color: "bg-amber-500",
-                    desc: "Sending request headers"
-                  },
-                  {
-                    label: "Time to First Byte (TTFB)",
-                    value: Math.max(1, Math.round(response.time * 0.75)),
-                    color: "bg-rose-500",
-                    desc: "Server response time"
-                  },
-                  {
-                    label: "Content Download",
-                    value: Math.max(1, Math.round(response.time * 0.15)),
-                    color: "bg-indigo-500",
-                    desc: "Payload transfer"
-                  },
-                ].map((item) => (
-                  <div key={item.label} className="bg-card/50 rounded-xl p-6 border border-border/30">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h4 className="font-semibold text-foreground mb-1">{item.label}</h4>
-                        <p className="text-sm text-muted-foreground">{item.desc}</p>
-                      </div>
-                      <span className="text-lg font-bold text-primary">{item.value} ms</span>
-                    </div>
-                    <div className="h-3 w-full bg-muted/30 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${item.color} transition-all duration-1000 ease-out rounded-full shadow-sm`}
-                        style={{
-                          width: `${Math.min(100, (Number(item.value) / response.time) * 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-8 border border-primary/20">
-                <div className="flex justify-between items-end">
-                  <div className="space-y-2">
-                    <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                      Total Response Time
-                    </span>
-                    <div className="text-5xl font-black text-primary tracking-tighter">
-                      {response.time} ms
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      End-to-end request latency
-                    </p>
-                  </div>
-                  <div className="px-6 py-3 bg-emerald-500/15 border border-emerald-500/30 rounded-xl flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50" />
-                    <span className="text-sm font-bold text-emerald-600 uppercase tracking-wide">
-                      Performance Analyzed
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Response Comparison Modal */}
       {showComparison && (
         <ResponseComparison
           currentResponse={response}

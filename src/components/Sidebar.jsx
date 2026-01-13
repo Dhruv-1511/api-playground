@@ -1,15 +1,12 @@
 import React from "react";
-import { Plus, History, Folder, Trash2, Settings, Server } from "lucide-react";
+import { Plus, Folder, Trash2, Settings } from "lucide-react";
 import { useRequestStore } from "../store/useRequestStore";
-import { useEnvStore } from "../store/useEnvStore";
 import { Button } from "./ui/Button";
 import logo from '../assets/logo.png';
 
 export const Sidebar = ({ searchTerm = "" }) => {
   const { collections, currentRequest, setCurrentRequest, deleteRequest } =
     useRequestStore();
-  // eslint-disable-next-line no-unused-vars
-  const { environments, activeEnvId, setActiveEnv } = useEnvStore();
 
   const filteredCollections = collections.filter(
     (req) =>
@@ -31,108 +28,89 @@ export const Sidebar = ({ searchTerm = "" }) => {
     });
   };
 
-  return (
-    <div className="w-72 border-r border-border/50 bg-card/90 flex flex-col h-screen overflow-hidden shadow-2xl z-20 backdrop-blur-xl">
-      <div className="p-8 border-b border-border/30 space-y-8">
-        <div className="flex items-center gap-3 py-2">
-          <img
-            src={logo}
-            alt="RequestLab"
-            className="size-14 object-contain"
-          />
-          <h2 className="text-2xl font-black tracking-tighter bg-gradient-to-r from-primary via-secondary to-purple-500 bg-clip-text text-transparent">
-            RequestLab
-          </h2>
-        </div>
+  const methodColors = {
+    GET: "text-emerald-500 bg-emerald-500/10",
+    POST: "text-blue-500 bg-blue-500/10",
+    PUT: "text-amber-500 bg-amber-500/10",
+    PATCH: "text-orange-500 bg-orange-500/10",
+    DELETE: "text-red-500 bg-red-500/10",
+  };
 
+  return (
+    <div className="w-64 border-r border-border bg-card flex flex-col h-screen">
+      {/* Header */}
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center gap-2 mb-4">
+          <img src={logo} alt="RequestLab" className="w-8 h-8" />
+          <span className="text-lg font-semibold">RequestLab</span>
+        </div>
         <Button
           onClick={createNewRequest}
-          variant="brand"
-          className="w-full justify-start gap-4 py-8 text-lg font-bold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+          className="w-full justify-center gap-2"
         >
-          <Plus size={24} />
-          <span className="tracking-tight">
-            New Request
-          </span>
+          <Plus size={16} />
+          New Request
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-8">
-        <div>
-          <h3 className="px-4 mb-4 text-xs font-bold tracking-widest uppercase text-muted-foreground/70 flex items-center gap-3">
-            <Folder size={16} />
-            Collections
-          </h3>
-          <div className="space-y-2">
-            {filteredCollections.map((req) => (
-              <div
-                key={req.id}
-                onClick={() => setCurrentRequest(req)}
-                className={`group flex items-center justify-between p-4 rounded-xl cursor-pointer text-sm transition-all duration-300 hover:shadow-md ${
-                  currentRequest.id === req.id
-                    ? "bg-primary/15 text-primary border border-primary/30 shadow-lg"
-                    : "hover:bg-accent/40 hover:translate-x-2 hover:scale-[1.02]"
-                }`}
-              >
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <span
-                    className={`text-xs font-black w-12 text-center uppercase py-1 rounded-lg border shadow-sm ${
-                      req.method === "GET"
-                        ? "bg-emerald-500/20 text-emerald-600 border-emerald-500/30"
-                        : req.method === "POST"
-                        ? "bg-blue-500/20 text-blue-600 border-blue-500/30"
-                        : req.method === "PUT"
-                        ? "bg-amber-500/20 text-amber-600 border-amber-500/30"
-                        : "bg-rose-500/20 text-rose-600 border-rose-500/30"
-                    }`}
-                  >
-                    {req.method}
-                  </span>
-                  <span className="truncate font-semibold text-foreground">{req.name}</span>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteRequest(req.id);
-                  }}
-                  className="opacity-0 group-hover:opacity-100 p-2 hover:bg-destructive/15 hover:text-destructive rounded-lg transition-all duration-200 hover:scale-110"
+      {/* Collections */}
+      <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex items-center gap-2 px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+          <Folder size={14} />
+          Collections
+        </div>
+        <div className="space-y-1">
+          {filteredCollections.map((req) => (
+            <div
+              key={req.id}
+              onClick={() => setCurrentRequest(req)}
+              className={`group flex items-center justify-between px-2 py-2 rounded-sm cursor-pointer text-sm transition-colors ${
+                currentRequest.id === req.id
+                  ? "bg-accent text-accent-foreground"
+                  : "hover:bg-accent/50"
+              }`}
+            >
+              <div className="flex items-center gap-2 overflow-hidden">
+                <span
+                  className={`text-[10px] font-semibold w-11 text-center py-0.5 rounded-sm ${
+                    methodColors[req.method] || methodColors.GET
+                  }`}
                 >
-                  <Trash2 size={16} />
-                </button>
+                  {req.method}
+                </span>
+                <span className="truncate">{req.name}</span>
               </div>
-            ))}
-            {collections.length === 0 && (
-              <div className="px-6 py-12 text-center border-2 border-dashed border-muted/50 rounded-2xl bg-muted/5">
-                <div className="w-12 h-12 mx-auto mb-4 opacity-30">
-                  <Folder size={48} className="text-muted-foreground/30" />
-                </div>
-                <p className="text-sm text-muted-foreground font-semibold">
-                  No saved requests yet
-                </p>
-                <p className="text-xs text-muted-foreground/60 mt-2">
-                  Create your first request above
-                </p>
-              </div>
-            )}
-          </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteRequest(req.id);
+                }}
+                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 hover:text-destructive rounded-sm transition-opacity"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+          {collections.length === 0 && (
+            <div className="px-3 py-8 text-center border border-dashed border-border rounded-sm">
+              <Folder size={24} className="mx-auto mb-2 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">No saved requests</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                Create your first request above
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="p-6 border-t border-border/30 bg-card/50 backdrop-blur-sm flex items-center justify-between shadow-inner">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-10 h-10 p-0 rounded-xl hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
-        >
-          <Settings size={20} />
+      {/* Footer */}
+      <div className="p-3 border-t border-border flex items-center justify-between">
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <Settings size={16} />
         </Button>
-        <div className="flex flex-col items-end">
-          <span className="text-xs font-black tracking-tighter text-primary/90">
-            REQUESTLAB v2.0
-          </span>
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-            Pro Edition
-          </span>
+        <div className="text-right">
+          <div className="text-xs font-medium text-foreground">RequestLab</div>
+          <div className="text-[10px] text-muted-foreground">v2.0</div>
         </div>
       </div>
     </div>

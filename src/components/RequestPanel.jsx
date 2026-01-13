@@ -1,14 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import {
-  Send,
-  Loader2,
-  Save,
-  Trash2,
-  Plus,
-  Folder,
-  LayoutTemplate,
-} from "lucide-react";
+import { Send, Loader2, Save, Trash2, Plus } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { useRequestStore } from "../store/useRequestStore";
 import { useEnvStore } from "../store/useEnvStore";
@@ -18,7 +10,6 @@ import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
-import RequestTemplates from "./RequestTemplates";
 
 const METHODS = [
   { value: "GET", label: "GET" },
@@ -35,11 +26,9 @@ export const RequestPanel = ({ onResponse }) => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("params");
   const [abortController, setAbortController] = useState(null);
-  const [showTemplates, setShowTemplates] = useState(false);
 
   const activeEnv = environments.find((e) => e.id === activeEnvId);
 
-  // Connection Warm-up Optimization (Faster than Postman)
   useEffect(() => {
     if (!currentRequest.url) return;
     try {
@@ -48,24 +37,21 @@ export const RequestPanel = ({ onResponse }) => {
           ? currentRequest.url
           : `https://${currentRequest.url}`
       );
-      const origin = url.origin;
-
-      let link = document.querySelector(`link[href="${origin}"]`);
+      let link = document.querySelector(`link[href="${url.origin}"]`);
       if (!link) {
         link = document.createElement("link");
         link.rel = "preconnect";
-        link.href = origin;
+        link.href = url.origin;
         document.head.appendChild(link);
       }
     } catch {
-      // Ignore invalid URLs while typing
+      // Ignore invalid URLs
     }
   }, [currentRequest.url]);
 
   const handleSend = async () => {
     if (!currentRequest.url) return;
 
-    // Cancel existing request if any
     if (abortController) abortController.abort();
 
     const controller = new AbortController();
@@ -126,7 +112,6 @@ export const RequestPanel = ({ onResponse }) => {
   const handleUrlChange = (e) => {
     const value = e.target.value;
 
-    // Detect if user pasted a curl command
     if (value.trim().startsWith("curl ")) {
       try {
         const parsed = parseCurl(value);
@@ -143,11 +128,9 @@ export const RequestPanel = ({ onResponse }) => {
               : [{ key: "", value: "", enabled: true }],
           body: parsed.body,
         });
-        // Clear the input since we parsed the curl
         e.target.value = parsed.url;
       } catch (error) {
         console.error("Failed to parse curl command:", error.message);
-        // If parsing fails, just set the URL as normal
         updateCurrentRequest({ url: value });
       }
     } else {
@@ -155,17 +138,6 @@ export const RequestPanel = ({ onResponse }) => {
     }
   };
 
-  const applyTemplate = (template) => {
-    updateCurrentRequest({
-      method: template.method,
-      url: template.url,
-      headers: template.headers,
-      params: template.params,
-      body: template.body,
-    });
-  };
-
-  // Keyboard shortcuts (must be after all function definitions)
   useKeyboardShortcuts([
     { key: "Enter", ctrl: true, action: handleSend },
     { key: "s", ctrl: true, action: saveRequest },
@@ -193,116 +165,100 @@ export const RequestPanel = ({ onResponse }) => {
     updateCurrentRequest({ [type]: list });
   };
 
+  const methodColors = {
+    GET: "text-emerald-500",
+    POST: "text-blue-500",
+    PUT: "text-amber-500",
+    PATCH: "text-orange-500",
+    DELETE: "text-red-500",
+  };
+
   return (
-    <div className="flex flex-col h-full bg-card/20 animate-slide-in">
-      {/* URL BAR */}
-      <div className="p-6 border-b border-border/30 bg-card/40 backdrop-blur-sm flex gap-4 items-center sticky top-0 z-10 transition-all shadow-sm animate-fade-in-up">
-        <div className="flex-none">
-          <Select
-            value={currentRequest.method}
-            onChange={(e) => updateCurrentRequest({ method: e.target.value })}
-            options={METHODS}
-            className={`w-40 font-black text-sm ${
-              currentRequest.method === "GET"
-                ? "text-emerald-600"
-                : currentRequest.method === "POST"
-                ? "text-blue-600"
-                : currentRequest.method === "PUT"
-                ? "text-amber-600"
-                : "text-rose-600"
-            }`}
-          />
-        </div>
-        <div className="flex-1 flex gap-3">
-          <Input
-            placeholder="https://api.example.com/v1/resource... or paste curl command"
-            value={currentRequest.url}
-            onChange={handleUrlChange}
-            className="bg-card/60 border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-300 font-mono text-sm shadow-lg hover:shadow-xl"
-            onKeyDown={(e) => {
-              if (e.ctrlKey && e.key === "Enter") handleSend();
-            }}
-          />
-          {loading ? (
-            <Button
-              onClick={handleCancel}
-              variant="destructive"
-              className="min-w-[140px] gap-2 glow-secondary shadow-lg hover:shadow-xl"
-            >
-              <Loader2 className="animate-spin" size={18} />
-              <span className="font-bold">CANCEL</span>
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSend}
-              disabled={!currentRequest.url}
-              variant="brand"
-              className={`min-w-[140px] gap-2 shadow-lg hover:shadow-xl transition-all duration-200 ${currentRequest.url ? 'animate-bounce-in' : ''}`}
-            >
-              <Send size={18} />
-              <span className="font-bold">SEND</span>
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            onClick={saveRequest}
-            className="gap-2 px-5 border-border/50 hover:border-primary/30 shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            <Save size={18} />
-            <span className="hidden lg:inline font-medium">Save</span>
+    <div className="flex flex-col h-full bg-background">
+      {/* URL Bar */}
+      <div className="p-4 border-b border-border flex gap-3 items-center">
+        <Select
+          value={currentRequest.method}
+          onChange={(e) => updateCurrentRequest({ method: e.target.value })}
+          options={METHODS}
+          className={`w-28 ${methodColors[currentRequest.method]}`}
+        />
+        <Input
+          placeholder="Enter URL or paste curl command..."
+          value={currentRequest.url}
+          onChange={handleUrlChange}
+          className="flex-1 font-mono text-sm"
+          onKeyDown={(e) => {
+            if (e.ctrlKey && e.key === "Enter") handleSend();
+          }}
+        />
+        {loading ? (
+          <Button onClick={handleCancel} variant="destructive" className="gap-2 px-4">
+            <Loader2 className="animate-spin" size={16} />
+            Cancel
           </Button>
-        </div>
+        ) : (
+          <Button
+            onClick={handleSend}
+            disabled={!currentRequest.url}
+            className="gap-2 px-4"
+          >
+            <Send size={16} />
+            Send
+          </Button>
+        )}
+        <Button variant="outline" onClick={saveRequest} className="gap-2">
+          <Save size={16} />
+          <span className="hidden lg:inline">Save</span>
+        </Button>
       </div>
 
-      {/* TABS */}
-      <div className="flex px-6 border-b border-border/30 bg-card/20 text-xs font-bold tracking-widest uppercase font-sans shadow-inner">
+      {/* Tabs */}
+      <div className="flex border-b border-border text-sm">
         {["params", "headers", "body"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-8 py-4 transition-all duration-300 relative group hover:bg-accent/30 ${
+            className={`px-4 py-2 capitalize transition-colors border-b-2 -mb-px ${
               activeTab === tab
-                ? "text-primary font-black"
-                : "text-muted-foreground hover:text-foreground"
+                ? "text-primary border-primary"
+                : "text-muted-foreground border-transparent hover:text-foreground"
             }`}
           >
             {tab}
-            {activeTab === tab && (
-              <div className="absolute bottom-0 left-0 right-0 h-1 electric-gradient glow-primary rounded-t-sm" />
-            )}
           </button>
         ))}
       </div>
 
-      {/* TAB CONTENT */}
-      <div className="flex-1 overflow-auto p-6 bg-card/10">
+      {/* Tab Content */}
+      <div className="flex-1 overflow-auto p-4">
         {(activeTab === "params" || activeTab === "headers") && (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {currentRequest[activeTab].map((item, index) => (
-              <div key={index} className="flex gap-3 items-center p-3 bg-card/40 rounded-lg border border-border/30 hover:border-primary/20 transition-all duration-200 group">
+              <div key={index} className="flex gap-2 items-center group">
                 <Input
-                  className="h-10 text-sm bg-background/60 border-border/50 focus:border-primary/40 transition-all duration-200"
                   placeholder="Key"
                   value={item.key}
                   onChange={(e) =>
                     updateList(activeTab, index, "key", e.target.value)
                   }
+                  className="flex-1"
                 />
                 <Input
-                  className="h-10 text-sm bg-background/60 border-border/50 focus:border-primary/40 transition-all duration-200"
                   placeholder="Value"
                   value={item.value}
                   onChange={(e) =>
                     updateList(activeTab, index, "value", e.target.value)
                   }
+                  className="flex-1"
                 />
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-10 w-10 p-0 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all duration-200 rounded-lg"
+                  className="h-9 w-9 p-0 opacity-0 group-hover:opacity-100"
                   onClick={() => removeListItem(activeTab, index)}
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={14} />
                 </Button>
               </div>
             ))}
@@ -310,16 +266,16 @@ export const RequestPanel = ({ onResponse }) => {
               variant="outline"
               size="sm"
               onClick={() => addListItem(activeTab)}
-              className="gap-3 text-sm px-4 py-3 border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200 shadow-sm"
+              className="gap-2 mt-2"
             >
-              <Plus size={16} />
+              <Plus size={14} />
               Add {activeTab === "params" ? "Parameter" : "Header"}
             </Button>
           </div>
         )}
 
         {activeTab === "body" && (
-          <div className="h-full min-h-[400px] border border-border/50 rounded-xl overflow-hidden shadow-lg bg-card/60">
+          <div className="h-full min-h-[300px] border border-border rounded-sm overflow-hidden">
             <Editor
               height="100%"
               defaultLanguage="json"
@@ -328,10 +284,9 @@ export const RequestPanel = ({ onResponse }) => {
               options={{
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
-                fontSize: 14,
+                fontSize: 13,
                 lineNumbers: "on",
-                roundedSelection: false,
-                padding: { top: 16, bottom: 16, left: 16, right: 16 },
+                padding: { top: 12, bottom: 12 },
                 scrollbar: {
                   vertical: "visible",
                   horizontal: "visible",
@@ -345,14 +300,6 @@ export const RequestPanel = ({ onResponse }) => {
           </div>
         )}
       </div>
-
-      {/* Request Templates Modal */}
-      {showTemplates && (
-        <RequestTemplates
-          onClose={() => setShowTemplates(false)}
-          onSelectTemplate={applyTemplate}
-        />
-      )}
     </div>
   );
 };

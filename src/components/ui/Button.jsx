@@ -5,30 +5,29 @@ const Button = React.forwardRef(
   ({ className, variant = "primary", size = "md", ...props }, ref) => {
     const variants = {
       primary:
-        "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:scale-105 shadow-md transition-all duration-300 active:scale-95",
+        "bg-primary text-primary-foreground hover:bg-primary/90",
       secondary:
-        "bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:shadow-lg hover:scale-105 shadow-md transition-all duration-300",
-      brand:
-        "electric-gradient text-white border-none glow-primary hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg hover:brightness-110",
-      ghost: "hover:bg-accent/60 hover:text-accent-foreground hover:shadow-md hover:scale-105 transition-all duration-300",
+        "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+      ghost:
+        "hover:bg-accent hover:text-accent-foreground",
       outline:
-        "border border-border/60 bg-card/60 backdrop-blur-sm hover:bg-accent/80 hover:text-accent-foreground hover:border-primary/30 hover:shadow-lg hover:scale-105 transition-all duration-300 shadow-sm",
+        "border border-border bg-transparent hover:bg-accent hover:text-accent-foreground",
       destructive:
-        "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:shadow-lg hover:scale-105 shadow-md transition-all duration-300 active:scale-95",
+        "bg-destructive text-destructive-foreground hover:bg-destructive/90",
     };
 
     const sizes = {
-      sm: "h-9 px-4 text-xs font-bold tracking-wide uppercase",
-      md: "h-11 px-6 py-3 text-sm font-semibold",
-      lg: "h-14 px-10 text-base font-bold",
-      icon: "h-11 w-11",
+      sm: "h-8 px-3 text-xs font-medium",
+      md: "h-9 px-4 text-sm font-medium",
+      lg: "h-10 px-6 text-sm font-medium",
+      icon: "h-9 w-9",
     };
 
     return (
       <button
         ref={ref}
         className={twMerge(
-          "inline-flex items-center justify-center rounded-xl font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed select-none",
+          "inline-flex items-center justify-center rounded-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50",
           variants[variant],
           sizes[size],
           className
