@@ -1,0 +1,325 @@
+'use client'
+
+import { useState, useEffect } from "react"
+import { Send, Loader2, Save, Trash2, Plus } from "lucide-react"
+import { useRequestStore } from "@/store/useRequestStore"
+import { useEnvStore } from "@/store/useEnvStore"
+import { prepareRequest } from "@/utils/resolver"
+import { parseCurl } from "@/utils/curlParser"
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
+import { Button } from "./ui/Button"
+import { Input } from "./ui/Input"
+import { Select } from "./ui/Select"
+import MonacoEditor from "./MonacoEditor"
+
+interface Response {
+  data: unknown
+  status: number | string
+  statusText: string
+  headers: Record<string, string>
+  time: number
+  size: number
+  error?: boolean
+}
+
+interface RequestPanelProps {
+  onResponse: (response: Response) => void
+}
+
+const METHODS = [
+  { value: "GET", label: "GET" },
+  { value: "POST", label: "POST" },
+  { value: "PUT", label: "PUT" },
+  { value: "PATCH", label: "PATCH" },
+  { value: "DELETE", label: "DELETE" },
+]
+
+export const RequestPanel = ({ onResponse }: RequestPanelProps) => {
+  const { currentRequest, updateCurrentRequest, saveRequest, addToHistory } =
+    useRequestStore()
+  const { environments, activeEnvId } = useEnvStore()
+  const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState("params")
+  const [abortController, setAbortController] = useState<AbortController | null>(null)
+
+  const activeEnv = environments.find((e) => e.id === activeEnvId)
+
+  useEffect(() => {
+    if (!currentRequest.url) return
+    try {
+      const url = new URL(
+        currentRequest.url.startsWith("http")
+          ? currentRequest.url
+          : `https://${currentRequest.url}`
+      )
+      let link = document.querySelector(`link[href="${url.origin}"]`)
+      if (!link) {
+        link = document.createElement("link")
+        link.setAttribute("rel", "preconnect")
+        link.setAttribute("href", url.origin)
+        document.head.appendChild(link)
+      }
+    } catch {
+      // Ignore invalid URLs
+    }
+  }, [currentRequest.url])
+
+  const handleSend = async () => {
+    if (!currentRequest.url) return
+
+    if (abortController) abortController.abort()
+
+    const controller = new AbortController()
+    setAbortController(controller)
+    setLoading(true)
+
+    const startTime = performance.now()
+    const config = prepareRequest(currentRequest, activeEnv)
+
+    try {
+      // Use the API proxy route
+      const response = await fetch('/api/proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: config.url,
+          method: config.method,
+          headers: config.headers,
+          data: config.data,
+        }),
+        signal: controller.signal,
+      })
+
+      const resData = await response.json()
+
+      // If the proxy returned an error status, handle it
+      if (!response.ok && !resData.status) {
+        throw new Error(resData.data || 'Request failed')
+      }
+
+      onResponse(resData)
+      addToHistory(currentRequest, resData)
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return
+
+      const endTime = performance.now()
+      const errorRes: Response = {
+        error: true,
+        data: error instanceof Error ? error.message : 'Unknown error',
+        status: "Error",
+        statusText: "Network Error",
+        headers: {},
+        time: Math.round(endTime - startTime),
+        size: 0,
+      }
+      onResponse(errorRes)
+    } finally {
+      setLoading(false)
+      setAbortController(null)
+    }
+  }
+
+  const handleCancel = () => {
+    if (abortController) {
+      abortController.abort()
+      setLoading(false)
+      setAbortController(null)
+    }
+  }
+
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+
+    if (value.trim().startsWith("curl ")) {
+      try {
+        const parsed = parseCurl(value)
+        updateCurrentRequest({
+          method: parsed.method,
+          url: parsed.url,
+          headers:
+            parsed.headers.length > 0
+              ? parsed.headers
+              : [{ key: "", value: "", enabled: true }],
+          params:
+            parsed.params.length > 0
+              ? parsed.params
+              : [{ key: "", value: "", enabled: true }],
+          body: parsed.body,
+        })
+        e.target.value = parsed.url
+      } catch (error) {
+        console.error("Failed to parse curl command:", error instanceof Error ? error.message : error)
+        updateCurrentRequest({ url: value })
+      }
+    } else {
+      updateCurrentRequest({ url: value })
+    }
+  }
+
+  useKeyboardShortcuts([
+    { key: "Enter", ctrl: true, action: handleSend },
+    { key: "s", ctrl: true, action: saveRequest },
+    { key: "1", alt: true, action: () => setActiveTab("params") },
+    { key: "2", alt: true, action: () => setActiveTab("headers") },
+    { key: "3", alt: true, action: () => setActiveTab("body") },
+  ])
+
+  const updateList = (type: 'params' | 'headers', index: number, key: string, value: string) => {
+    const list = [...currentRequest[type]]
+    list[index] = { ...list[index], [key]: value }
+    updateCurrentRequest({ [type]: list })
+  }
+
+  const addListItem = (type: 'params' | 'headers') => {
+    const list = [
+      ...currentRequest[type],
+      { key: "", value: "", enabled: true },
+    ]
+    updateCurrentRequest({ [type]: list })
+  }
+
+  const removeListItem = (type: 'params' | 'headers', index: number) => {
+    const list = currentRequest[type].filter((_, i) => i !== index)
+    updateCurrentRequest({ [type]: list })
+  }
+
+  const methodColors: Record<string, string> = {
+    GET: "text-emerald-500",
+    POST: "text-blue-500",
+    PUT: "text-amber-500",
+    PATCH: "text-orange-500",
+    DELETE: "text-red-500",
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-background">
+      {/* URL Bar */}
+      <div className="p-4 border-b border-border flex gap-3 items-center">
+        <Select
+          value={currentRequest.method}
+          onChange={(e) => updateCurrentRequest({ method: e.target.value })}
+          options={METHODS}
+          className={`w-28 ${methodColors[currentRequest.method]}`}
+        />
+        <Input
+          placeholder="Enter URL or paste curl command..."
+          value={currentRequest.url}
+          onChange={handleUrlChange}
+          className="flex-1 font-mono text-sm"
+          onKeyDown={(e) => {
+            if (e.ctrlKey && e.key === "Enter") handleSend()
+          }}
+        />
+        {loading ? (
+          <Button onClick={handleCancel} variant="destructive" className="gap-2 px-4">
+            <Loader2 className="animate-spin" size={16} />
+            Cancel
+          </Button>
+        ) : (
+          <Button
+            onClick={handleSend}
+            disabled={!currentRequest.url}
+            className="gap-2 px-4"
+          >
+            <Send size={16} />
+            Send
+          </Button>
+        )}
+        <Button variant="outline" onClick={saveRequest} className="gap-2">
+          <Save size={16} />
+          <span className="hidden lg:inline">Save</span>
+        </Button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-border text-sm">
+        {["params", "headers", "body"].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 capitalize transition-colors border-b-2 -mb-px ${
+              activeTab === tab
+                ? "text-primary border-primary"
+                : "text-muted-foreground border-transparent hover:text-foreground"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      <div className="flex-1 overflow-auto p-4">
+        {(activeTab === "params" || activeTab === "headers") && (
+          <div className="space-y-2">
+            {currentRequest[activeTab as 'params' | 'headers'].map((item, index) => (
+              <div key={index} className="flex gap-2 items-center group">
+                <Input
+                  placeholder="Key"
+                  value={item.key}
+                  onChange={(e) =>
+                    updateList(activeTab as 'params' | 'headers', index, "key", e.target.value)
+                  }
+                  className="flex-1"
+                />
+                <Input
+                  placeholder="Value"
+                  value={item.value}
+                  onChange={(e) =>
+                    updateList(activeTab as 'params' | 'headers', index, "value", e.target.value)
+                  }
+                  className="flex-1"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 p-0 opacity-0 group-hover:opacity-100"
+                  onClick={() => removeListItem(activeTab as 'params' | 'headers', index)}
+                >
+                  <Trash2 size={14} />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => addListItem(activeTab as 'params' | 'headers')}
+              className="gap-2 mt-2"
+            >
+              <Plus size={14} />
+              Add {activeTab === "params" ? "Parameter" : "Header"}
+            </Button>
+          </div>
+        )}
+
+        {activeTab === "body" && (
+          <div className="h-full min-h-[300px] border border-border rounded-sm overflow-hidden">
+            <MonacoEditor
+              height="100%"
+              defaultLanguage="json"
+              theme="vs-dark"
+              value={currentRequest.body}
+              options={{
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 13,
+                lineNumbers: "on",
+                padding: { top: 12, bottom: 12 },
+                scrollbar: {
+                  vertical: "visible",
+                  horizontal: "visible",
+                  verticalScrollbarSize: 8,
+                  horizontalScrollbarSize: 8,
+                },
+                wordWrap: "on",
+              }}
+              onChange={(value) => updateCurrentRequest({ body: value || '' })}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

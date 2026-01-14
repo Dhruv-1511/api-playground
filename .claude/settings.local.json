@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"Remove-Item ''D:\\\\requestlab\\\\vite.config.js'' -Force -ErrorAction SilentlyContinue; Remove-Item ''D:\\\\requestlab\\\\index.html'' -Force -ErrorAction SilentlyContinue; Remove-Item ''D:\\\\requestlab\\\\src'' -Recurse -Force -ErrorAction SilentlyContinue\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''D:\\\\requestlab'' -Recurse -Directory | Select-Object FullName | Format-Table -AutoSize\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''D:\\\\requestlab'' -Directory | Where-Object { $_Name -like ''D?requestlab*'' } | Remove-Item -Recurse -Force\")",
+      "Bash(dir /ad /b)",
+      "Bash(npm install)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)"
+    ]
+  },
+  "outputStyle": "Explanatory"
+}
