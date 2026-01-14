@@ -8,6 +8,7 @@ import { Github, Sun, Moon, Search, ChevronDown, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { useThemeStore } from "@/store/useThemeStore"
 import { useRequestStore } from "@/store/useRequestStore"
+import { UserMenu } from "@/components/auth/UserMenu"
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
@@ -70,8 +71,14 @@ export default function Home() {
 
   if (!mounted) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
-        <div className="text-muted-foreground">Loading...</div>
+      <div className="flex h-screen w-full items-center justify-center" style={{ backgroundColor: '#16192b' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="h-12 w-12 rounded-full border-4 border-blue-500/20"></div>
+            <div className="absolute top-0 left-0 h-12 w-12 rounded-full border-4 border-transparent border-t-blue-500 animate-spin"></div>
+          </div>
+          <div className="text-gray-400 text-sm font-medium">Loading RequestLab...</div>
+        </div>
       </div>
     )
   }
@@ -121,6 +128,8 @@ export default function Home() {
                 <Github size={16} />
               </a>
             </Button>
+
+            <UserMenu />
           </div>
         </header>
 
